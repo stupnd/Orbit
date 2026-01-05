@@ -20,13 +20,12 @@ export function DeliverableModal({ isOpen, onClose, deliverable }: DeliverableMo
   const [title, setTitle] = useState("")
   const [courseId, setCourseId] = useState(courses[0]?.id || "")
   const [dueDate, setDueDate] = useState("")
-  const [status, setStatus] = useState<DeliverableStatus>("not_started")
+  const [status, setStatus] = useState<DeliverableStatus>("incomplete")
   const [estimatedHours, setEstimatedHours] = useState("10")
   const [gradeWeight, setGradeWeight] = useState("10")
   const [priority, setPriority] = useState<"low" | "medium" | "high">("medium")
   const [targetGrade, setTargetGrade] = useState("85")
   const [actualGrade, setActualGrade] = useState("")
-  const [hasActualGrade, setHasActualGrade] = useState(false)
 
   // Pre-fill form when editing
   useEffect(() => {
@@ -39,25 +38,18 @@ export function DeliverableModal({ isOpen, onClose, deliverable }: DeliverableMo
       setGradeWeight(deliverable.gradeWeight.toString())
       setPriority(deliverable.priority)
       setTargetGrade(deliverable.targetGrade?.toString() || "85")
-      if (deliverable.actualGrade !== undefined) {
-        setActualGrade(deliverable.actualGrade.toString())
-        setHasActualGrade(true)
-      } else {
-        setActualGrade("")
-        setHasActualGrade(false)
-      }
+      setActualGrade(deliverable.actualGrade?.toString() || "")
     } else {
       // Reset for create mode
       setTitle("")
       setCourseId(courses[0]?.id || "")
       setDueDate("")
-      setStatus("not_started")
+      setStatus("incomplete")
       setEstimatedHours("10")
       setGradeWeight("10")
       setPriority("medium")
       setTargetGrade("85")
       setActualGrade("")
-      setHasActualGrade(false)
     }
   }, [deliverable, courses, isOpen])
 
@@ -65,17 +57,24 @@ export function DeliverableModal({ isOpen, onClose, deliverable }: DeliverableMo
     e.preventDefault()
     if (title.trim() && courseId && dueDate) {
       const course = courses.find((c) => c.id === courseId)
+      
+      // Auto-set status to graded if actualGrade is entered
+      let finalStatus = status
+      if (actualGrade && parseFloat(actualGrade) >= 0 && status !== "graded") {
+        finalStatus = "graded"
+      }
+      
       const deliverableData = {
         title: title.trim(),
         courseId,
         courseName: course?.name || "",
         dueDate,
-        status,
+        status: finalStatus,
         priority,
         estimatedHours: parseFloat(estimatedHours) || 0,
         gradeWeight: parseFloat(gradeWeight) || 0,
         targetGrade: parseFloat(targetGrade) || undefined,
-        actualGrade: hasActualGrade && actualGrade ? parseFloat(actualGrade) : undefined,
+        actualGrade: actualGrade ? parseFloat(actualGrade) : undefined,
         riskLevel: "low" as const,
       }
 
@@ -93,8 +92,8 @@ export function DeliverableModal({ isOpen, onClose, deliverable }: DeliverableMo
 
   if (!isOpen) return null
 
-  // Auto-enable actual grade input when status is completed
-  const showActualGradeInput = status === "completed" || hasActualGrade
+  // Show actual grade input when status is graded
+  const showActualGradeInput = status === "graded"
 
   return (
     <AnimatePresence>
@@ -186,9 +185,10 @@ export function DeliverableModal({ isOpen, onClose, deliverable }: DeliverableMo
                       value={status}
                       onChange={(e) => setStatus(e.target.value as DeliverableStatus)}
                     >
-                      <option value="not_started">Not Started</option>
+                      <option value="incomplete">Incomplete</option>
                       <option value="in_progress">In Progress</option>
-                      <option value="completed">Completed</option>
+                      <option value="submitted">Submitted</option>
+                      <option value="graded">Grade Received</option>
                     </Select>
                   </div>
                 </div>
@@ -260,40 +260,48 @@ export function DeliverableModal({ isOpen, onClose, deliverable }: DeliverableMo
 
                 {/* Actual Grade Section */}
                 <div className="border-t border-border pt-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <label className="text-sm font-medium">
-                      Actual Grade Received
-                    </label>
-                    {status !== "completed" && (
-                      <label className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <input
-                          type="checkbox"
-                          checked={hasActualGrade}
-                          onChange={(e) => setHasActualGrade(e.target.checked)}
-                          className="rounded border-input"
-                        />
-                        I have the grade
-                      </label>
-                    )}
-                  </div>
+                  <label className="text-sm font-medium mb-2 block">
+                    Actual Grade Received
+                  </label>
                   
-                  {showActualGradeInput && (
-                    <input
-                      type="number"
-                      value={actualGrade}
-                      onChange={(e) => setActualGrade(e.target.value)}
-                      min="0"
-                      max="100"
-                      step="0.1"
-                      placeholder="Enter grade received"
-                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    />
-                  )}
-                  
-                  {!showActualGradeInput && (
-                    <p className="text-xs text-muted-foreground">
-                      Grade entry available when marked as completed or checkbox enabled
-                    </p>
+                  {showActualGradeInput ? (
+                    <>
+                      <input
+                        type="number"
+                        value={actualGrade}
+                        onChange={(e) => setActualGrade(e.target.value)}
+                        min="0"
+                        max="100"
+                        step="0.1"
+                        placeholder="Enter grade received"
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Available when status is "Grade Received"
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <input
+                        type="number"
+                        value={actualGrade}
+                        onChange={(e) => {
+                          setActualGrade(e.target.value)
+                          // Auto-set status to graded when entering a grade
+                          if (e.target.value && parseFloat(e.target.value) >= 0) {
+                            setStatus("graded")
+                          }
+                        }}
+                        min="0"
+                        max="100"
+                        step="0.1"
+                        placeholder="Enter grade to auto-set status to 'Grade Received'"
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Entering a grade will automatically set status to "Grade Received"
+                      </p>
+                    </>
                   )}
                 </div>
 

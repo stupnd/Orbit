@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect } from "react"
 import type { ReactNode } from "react"
-import type { Course, Deliverable } from "./types"
+import type { Course, Deliverable, DeliverableStatus } from "./types"
 
 interface AppState {
   courses: Course[]
@@ -22,13 +22,44 @@ const AppContext = createContext<AppContextType | undefined>(undefined)
 
 const STORAGE_KEY = "ai-student-os-data"
 
+// Migration helper to convert old status values to new ones
+function migrateDeliverableStatus(deliverable: any): any {
+  if (!deliverable.status) {
+    return { ...deliverable, status: 'incomplete' }
+  }
+
+  // Map old statuses to new ones
+  const statusMap: Record<string, DeliverableStatus> = {
+    'not_started': 'incomplete',
+    'completed': deliverable.actualGrade !== undefined || deliverable.currentGrade !== undefined 
+      ? 'graded' 
+      : 'submitted',
+    'overdue': 'incomplete', // Overdue items should be marked incomplete
+    'in_progress': 'in_progress',
+    // New statuses pass through
+    'incomplete': 'incomplete',
+    'submitted': 'submitted',
+    'graded': 'graded',
+  }
+
+  return {
+    ...deliverable,
+    status: statusMap[deliverable.status] || 'incomplete',
+  }
+}
+
 export function AppProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AppState>(() => {
     // Load from localStorage or use defaults
     const stored = localStorage.getItem(STORAGE_KEY)
     if (stored) {
       try {
-        return JSON.parse(stored)
+        const parsed = JSON.parse(stored)
+        // Migrate deliverable statuses if needed
+        if (parsed.deliverables) {
+          parsed.deliverables = parsed.deliverables.map(migrateDeliverableStatus)
+        }
+        return parsed
       } catch (e) {
         console.error("Failed to parse stored data:", e)
       }

@@ -9,38 +9,41 @@ export function calculateAcademicHealth(
   weeklyBudget: number
 ): AcademicHealth & { explanation: string[] } {
   const now = startOfDay(new Date())
-  const completed = deliverables.filter((d) => d.status === "completed")
-  const incomplete = deliverables.filter((d) => d.status !== "completed")
-  const overdue = incomplete.filter((d) => new Date(d.dueDate) < now)
+  const graded = deliverables.filter((d) => d.status === "graded")
+  const active = deliverables.filter((d) => d.status !== "graded")
+  const overdue = active.filter((d) => new Date(d.dueDate) < now)
 
   // Workload factor (0-100)
   const next7Days = addDays(now, 7)
-  const upcomingDeliverables = incomplete.filter(
+  const upcomingDeliverables = active.filter(
     (d) => new Date(d.dueDate) <= next7Days
   )
   const upcomingHours = upcomingDeliverables.reduce(
-    (sum, d) => sum + d.estimatedHours,
+    (sum, d) => {
+      if (d.status === "submitted" || d.status === "graded") return sum
+      return sum + d.estimatedHours
+    },
     0
   )
   const workloadScore = Math.max(0, 100 - (upcomingHours / weeklyBudget) * 50)
 
   // Grade factor (0-100)
-  const completedWithGrades = completed.filter((d) => d.actualGrade !== undefined || d.currentGrade !== undefined)
+  const gradedWithScores = graded.filter((d) => d.actualGrade !== undefined || d.currentGrade !== undefined)
   const avgGrade =
-    completedWithGrades.length > 0
-      ? completedWithGrades.reduce((sum, d) => sum + (d.actualGrade || d.currentGrade || 0), 0) /
-        completedWithGrades.length
+    gradedWithScores.length > 0
+      ? gradedWithScores.reduce((sum, d) => sum + (d.actualGrade || d.currentGrade || 0), 0) /
+        gradedWithScores.length
       : 80
   const gradeScore = avgGrade
 
   // Timeliness factor (0-100)
-  const timelinessScore = incomplete.length > 0
-    ? Math.max(0, 100 - (overdue.length / incomplete.length) * 100)
+  const timelinessScore = active.length > 0
+    ? Math.max(0, 100 - (overdue.length / active.length) * 100)
     : 100
 
   // Balance factor (based on distribution of work)
   const balanceScore =
-    incomplete.length > 0
+    active.length > 0
       ? Math.min(100, (weeklyBudget / (upcomingHours / 7)) * 100)
       : 100
 
@@ -64,8 +67,8 @@ export function calculateAcademicHealth(
     explanation.push(`${overdue.length} overdue deliverable${overdue.length > 1 ? "s" : ""}`)
   }
   
-  if (completedWithGrades.length > 0) {
-    explanation.push(`Average grade: ${avgGrade.toFixed(1)}% across ${completedWithGrades.length} completed item${completedWithGrades.length > 1 ? "s" : ""}`)
+  if (gradedWithScores.length > 0) {
+    explanation.push(`Average grade: ${avgGrade.toFixed(1)}% across ${gradedWithScores.length} graded item${gradedWithScores.length > 1 ? "s" : ""}`)
   }
   
   if (explanation.length === 0) {
@@ -95,12 +98,17 @@ export function calculateOverloadRisk(
   const now = startOfDay(new Date())
   const next7Days = addDays(now, 7)
   
-  const incomplete = deliverables.filter((d) => d.status !== "completed")
-  const upcoming = incomplete.filter((d) => new Date(d.dueDate) <= next7Days)
+  // Active deliverables are those not graded yet
+  const active = deliverables.filter((d) => d.status !== "graded")
+  const upcoming = active.filter((d) => new Date(d.dueDate) <= next7Days)
   const highPriority = upcoming.filter((d) => d.priority === "high")
   const highRisk = upcoming.filter((d) => d.riskLevel === "high")
 
-  const totalHours = upcoming.reduce((sum, d) => sum + d.estimatedHours, 0)
+  // Calculate remaining hours (submitted/graded have 0 remaining)
+  const totalHours = upcoming.reduce((sum, d) => {
+    if (d.status === "submitted" || d.status === "graded") return sum
+    return sum + d.estimatedHours
+  }, 0)
   const utilizationRate = (totalHours / weeklyBudget) * 100
 
   // Determine risk level
@@ -199,14 +207,18 @@ export function getWorkloadData(deliverables: Deliverable[]) {
     const date = addDays(now, i)
     const dateStr = date.toISOString().split("T")[0]
     
-    // Find deliverables due on this day
+    // Find deliverables due on this day (not graded yet)
     const dueDateStr = dateStr
     const dueToday = deliverables.filter((d) => {
       const dueDate = new Date(d.dueDate).toISOString().split("T")[0]
-      return dueDate === dueDateStr && d.status !== "completed"
+      return dueDate === dueDateStr && d.status !== "graded"
     })
 
-    const hours = dueToday.reduce((sum, d) => sum + d.estimatedHours, 0)
+    // Calculate remaining hours (submitted has 0 remaining)
+    const hours = dueToday.reduce((sum, d) => {
+      if (d.status === "submitted" || d.status === "graded") return sum
+      return sum + d.estimatedHours
+    }, 0)
 
     data.push({
       date: dateStr,

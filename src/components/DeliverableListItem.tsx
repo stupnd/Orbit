@@ -9,7 +9,7 @@ import { ConfirmDialog } from "./ConfirmDialog"
 import { Calendar, Clock, Target, MoreVertical, Edit2, Trash2, CheckCircle2, Circle } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useAppState } from "@/lib/store"
-import type { Deliverable } from "@/lib/types"
+import type { Deliverable, DeliverableStatus } from "@/lib/types"
 import { format } from "date-fns"
 
 interface DeliverableListItemProps {
@@ -20,21 +20,21 @@ interface DeliverableListItemProps {
 }
 
 const statusConfig = {
-  not_started: {
-    label: "Not Started",
+  incomplete: {
+    label: "Incomplete",
     className: "bg-gray-100 text-gray-800 border-gray-200",
   },
   in_progress: {
     label: "In Progress",
     className: "bg-blue-100 text-blue-800 border-blue-200",
   },
-  completed: {
-    label: "Completed",
-    className: "bg-green-100 text-green-800 border-green-200",
+  submitted: {
+    label: "Submitted",
+    className: "bg-purple-100 text-purple-800 border-purple-200",
   },
-  overdue: {
-    label: "Overdue",
-    className: "bg-red-100 text-red-800 border-red-200",
+  graded: {
+    label: "Grade Received",
+    className: "bg-green-100 text-green-800 border-green-200",
   },
 }
 
@@ -56,13 +56,12 @@ export function DeliverableListItem({
 
   const status = statusConfig[deliverable.status]
   const dueDate = new Date(deliverable.dueDate)
-  const isOverdue = dueDate < new Date() && deliverable.status !== "completed"
+  const isOverdue = dueDate < new Date() && deliverable.status !== "graded"
 
   const course = courses.find((c) => c.id === deliverable.courseId)
   const courseColor = course?.color || "#3B82F6"
 
-  const handleToggleComplete = () => {
-    const newStatus = deliverable.status === "completed" ? "in_progress" : "completed"
+  const handleStatusChange = (newStatus: DeliverableStatus) => {
     updateDeliverable(deliverable.id, { status: newStatus })
   }
 
@@ -154,18 +153,34 @@ export function DeliverableListItem({
                   <Edit2 className="h-4 w-4 mr-2" />
                   Edit
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleToggleComplete}>
-                  {deliverable.status === "completed" ? (
-                    <>
-                      <Circle className="h-4 w-4 mr-2" />
-                      Mark Incomplete
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircle2 className="h-4 w-4 mr-2" />
-                      Mark Complete
-                    </>
-                  )}
+                <DropdownMenuSeparator />
+                <DropdownMenuItem 
+                  onClick={() => handleStatusChange("incomplete")}
+                  disabled={deliverable.status === "incomplete"}
+                >
+                  <Circle className="h-4 w-4 mr-2" />
+                  Mark Incomplete
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  onClick={() => handleStatusChange("in_progress")}
+                  disabled={deliverable.status === "in_progress"}
+                >
+                  <Circle className="h-4 w-4 mr-2 text-blue-600" />
+                  Mark In Progress
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  onClick={() => handleStatusChange("submitted")}
+                  disabled={deliverable.status === "submitted"}
+                >
+                  <CheckCircle2 className="h-4 w-4 mr-2 text-purple-600" />
+                  Mark Submitted
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  onClick={() => handleStatusChange("graded")}
+                  disabled={deliverable.status === "graded"}
+                >
+                  <CheckCircle2 className="h-4 w-4 mr-2 text-green-600" />
+                  Mark Grade Received
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem

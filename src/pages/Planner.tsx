@@ -85,16 +85,16 @@ export function Planner() {
           <span className="text-sm font-medium">Filters:</span>
         </div>
 
-        <Select
+                    <Select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value as DeliverableStatus | "all")}
           className="w-[150px]"
         >
           <option value="all">All Status</option>
-          <option value="not_started">Not Started</option>
+          <option value="incomplete">Incomplete</option>
           <option value="in_progress">In Progress</option>
-          <option value="completed">Completed</option>
-          <option value="overdue">Overdue</option>
+          <option value="submitted">Submitted</option>
+          <option value="graded">Grade Received</option>
         </Select>
 
         <Select
@@ -171,9 +171,9 @@ export function Planner() {
         </div>
         <div className="text-center">
           <div className="text-2xl font-bold">
-            {deliverables.filter((d) => d.status === "completed").length}
+            {deliverables.filter((d) => d.status === "graded").length}
           </div>
-          <div className="text-sm text-muted-foreground">Completed</div>
+          <div className="text-sm text-muted-foreground">Graded</div>
         </div>
         <div className="text-center">
           <div className="text-2xl font-bold">

@@ -103,12 +103,12 @@ export function Dashboard() {
   const workloadData = getWorkloadData(deliverables)
   const gradeProjection = getGradeProjection(deliverables)
 
-  const activeDeliverables = deliverables.filter((d) => d.status !== "completed")
+  const activeDeliverables = deliverables.filter((d) => d.status !== "graded")
   const inProgress = deliverables.filter((d) => d.status === "in_progress")
 
   // Get top 3 upcoming deliverables as action items
   const upcomingActions = deliverables
-    .filter((d) => d.status !== "completed")
+    .filter((d) => d.status !== "graded")
     .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())
     .slice(0, 3)
 

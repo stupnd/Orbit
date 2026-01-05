@@ -9,7 +9,7 @@ export type Course = {
   color: string;
 };
 
-export type DeliverableStatus = 'not_started' | 'in_progress' | 'completed' | 'overdue';
+export type DeliverableStatus = 'incomplete' | 'in_progress' | 'submitted' | 'graded';
 
 export type Deliverable = {
   id: string;
