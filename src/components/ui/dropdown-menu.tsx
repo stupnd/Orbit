@@ -1,4 +1,5 @@
 import * as React from "react"
+import { createPortal } from "react-dom"
 import { cn } from "@/lib/utils"
 import { motion, AnimatePresence } from "framer-motion"
 
@@ -9,19 +10,22 @@ interface DropdownMenuProps {
 interface DropdownMenuContextType {
   open: boolean
   setOpen: (open: boolean) => void
+  triggerRef: React.RefObject<HTMLElement | null>
 }
 
 const DropdownMenuContext = React.createContext<DropdownMenuContextType>({
   open: false,
   setOpen: () => {},
+  triggerRef: { current: null },
 })
 
 export function DropdownMenu({ children }: DropdownMenuProps) {
   const [open, setOpen] = React.useState(false)
+  const triggerRef = React.useRef<HTMLElement | null>(null)
 
   return (
-    <DropdownMenuContext.Provider value={{ open, setOpen }}>
-      <div className="relative">{children}</div>
+    <DropdownMenuContext.Provider value={{ open, setOpen, triggerRef }}>
+      <div className="relative inline-block">{children}</div>
     </DropdownMenuContext.Provider>
   )
 }
@@ -33,7 +37,7 @@ export function DropdownMenuTrigger({
   children: React.ReactNode
   asChild?: boolean
 }) {
-  const { open, setOpen } = React.useContext(DropdownMenuContext)
+  const { open, setOpen, triggerRef } = React.useContext(DropdownMenuContext)
 
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation()
@@ -42,11 +46,16 @@ export function DropdownMenuTrigger({
 
   if (asChild && React.isValidElement(children)) {
     return React.cloneElement(children, {
+      ref: triggerRef,
       onClick: handleClick,
     } as any)
   }
 
-  return <button onClick={handleClick}>{children}</button>
+  return (
+    <button ref={triggerRef as any} onClick={handleClick}>
+      {children}
+    </button>
+  )
 }
 
 export function DropdownMenuContent({
@@ -58,45 +67,93 @@ export function DropdownMenuContent({
   className?: string
   align?: "start" | "end"
 }) {
-  const { open, setOpen } = React.useContext(DropdownMenuContext)
+  const { open, setOpen, triggerRef } = React.useContext(DropdownMenuContext)
+  const [position, setPosition] = React.useState({ top: 0, left: 0, width: 0 })
 
+  // Calculate position based on trigger element
+  React.useEffect(() => {
+    if (!open || !triggerRef.current) return
+
+    const updatePosition = () => {
+      if (!triggerRef.current) return
+      const rect = triggerRef.current.getBoundingClientRect()
+      setPosition({
+        top: rect.bottom + window.scrollY + 4, // 4px gap
+        left: align === "end" 
+          ? rect.right + window.scrollX 
+          : rect.left + window.scrollX,
+        width: rect.width,
+      })
+    }
+
+    updatePosition()
+    window.addEventListener("scroll", updatePosition, true)
+    window.addEventListener("resize", updatePosition)
+
+    return () => {
+      window.removeEventListener("scroll", updatePosition, true)
+      window.removeEventListener("resize", updatePosition)
+    }
+  }, [open, align, triggerRef])
+
+  // Handle click outside and escape key
   React.useEffect(() => {
     if (!open) return
 
-    const handleClickOutside = () => setOpen(false)
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        triggerRef.current &&
+        !triggerRef.current.contains(e.target as Node)
+      ) {
+        setOpen(false)
+      }
+    }
+
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === "Escape") setOpen(false)
     }
 
-    document.addEventListener("click", handleClickOutside)
-    document.addEventListener("keydown", handleEscape)
+    // Delay to prevent immediate close from trigger click
+    setTimeout(() => {
+      document.addEventListener("click", handleClickOutside)
+      document.addEventListener("keydown", handleEscape)
+    }, 0)
 
     return () => {
       document.removeEventListener("click", handleClickOutside)
       document.removeEventListener("keydown", handleEscape)
     }
-  }, [open, setOpen])
+  }, [open, setOpen, triggerRef])
 
-  return (
+  if (!open) return null
+
+  // Render dropdown in a portal at document body level
+  return createPortal(
     <AnimatePresence>
-      {open && (
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95, y: -10 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.95, y: -10 }}
-          transition={{ duration: 0.1 }}
-          className={cn(
-            "absolute z-50 min-w-[8rem] overflow-hidden rounded-md border border-border bg-popover p-1 text-popover-foreground shadow-md",
-            align === "end" ? "right-0" : "left-0",
-            "top-full mt-1",
-            className
-          )}
-          onClick={(e) => e.stopPropagation()}
-        >
-          {children}
-        </motion.div>
-      )}
-    </AnimatePresence>
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.95 }}
+        transition={{ duration: 0.1 }}
+        style={{
+          position: "absolute",
+          top: `${position.top}px`,
+          [align === "end" ? "right" : "left"]: 
+            align === "end" 
+              ? `${window.innerWidth - position.left}px`
+              : `${position.left}px`,
+          transformOrigin: align === "end" ? "top right" : "top left",
+        }}
+        className={cn(
+          "z-[100] min-w-[8rem] overflow-hidden rounded-md border border-border bg-popover p-1 text-popover-foreground shadow-lg",
+          className
+        )}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {children}
+      </motion.div>
+    </AnimatePresence>,
+    document.body
   )
 }
 
