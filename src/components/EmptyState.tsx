@@ -1,0 +1,40 @@
+import { Card } from "./ui/card"
+import { cn } from "@/lib/utils"
+import type { LucideIcon } from "lucide-react"
+
+interface EmptyStateProps {
+  icon?: LucideIcon
+  title: string
+  description?: string
+  action?: React.ReactNode
+  className?: string
+}
+
+export function EmptyState({
+  icon: Icon,
+  title,
+  description,
+  action,
+  className,
+}: EmptyStateProps) {
+  return (
+    <Card className={cn("p-12 text-center", className)}>
+      <div className="flex flex-col items-center gap-4">
+        {Icon && (
+          <div className="rounded-full bg-muted p-4">
+            <Icon className="h-8 w-8 text-muted-foreground" />
+          </div>
+        )}
+        <div className="space-y-2">
+          <h3 className="text-lg font-semibold">{title}</h3>
+          {description && (
+            <p className="text-sm text-muted-foreground max-w-sm">
+              {description}
+            </p>
+          )}
+        </div>
+        {action && <div className="mt-4">{action}</div>}
+      </div>
+    </Card>
+  )
+}
