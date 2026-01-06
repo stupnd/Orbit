@@ -7,12 +7,36 @@
   width: 100%;
 }
 
+/* Weekday header wrapper */
+.calendar-container .rbc-month-header {
+  display: flex;
+  flex-direction: row;
+  min-height: 40px;
+  background-color: hsl(var(--muted));
+  border-bottom: 1px solid hsl(var(--border));
+  overflow: visible;
+  position: relative;
+  z-index: 10;
+  flex-shrink: 0;
+}
+
+/* Individual weekday header cells */
 .calendar-container .rbc-header {
-  padding: 12px 6px;
+  padding: 12px 8px;
   font-weight: 600;
   font-size: 0.875rem;
-  border-bottom: 1px solid hsl(var(--border));
+  line-height: 1.2;
+  text-align: center;
+  color: hsl(var(--foreground));
   background-color: hsl(var(--muted));
+  border-left: 1px solid hsl(var(--border));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.calendar-container .rbc-header:first-child {
+  border-left: none;
 }
 
 .calendar-container .rbc-month-view {
@@ -21,6 +45,8 @@
   overflow: hidden;
   background-color: hsl(var(--background));
   height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 .calendar-container .rbc-month-row {
@@ -154,6 +180,23 @@
   overflow: hidden;
 }
 
+/* Ensure header row is always visible */
+.calendar-container .rbc-header-row {
+  display: flex;
+  flex-direction: row;
+  width: 100%;
+  overflow: visible;
+  flex-shrink: 0;
+}
+
+/* Month body content */
+.calendar-container .rbc-month-body {
+  flex: 1;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+}
+
 /* Mobile responsive adjustments */
 @media (max-width: 768px) {
   .calendar-container .rbc-toolbar {
@@ -167,9 +210,14 @@
     font-size: 1rem;
   }
 
+  .calendar-container .rbc-month-header {
+    min-height: 36px;
+  }
+
   .calendar-container .rbc-header {
     font-size: 0.75rem;
-    padding: 8px 4px;
+    padding: 10px 4px;
+    font-weight: 600;
   }
 
   .calendar-container .rbc-date-cell {
@@ -180,5 +228,17 @@
   .calendar-container .rbc-event {
     font-size: 0.7rem;
     padding: 1px 2px;
+  }
+}
+
+/* Extra small screens */
+@media (max-width: 480px) {
+  .calendar-container .rbc-month-header {
+    min-height: 32px;
+  }
+
+  .calendar-container .rbc-header {
+    font-size: 0.7rem;
+    padding: 8px 2px;
   }
 }
