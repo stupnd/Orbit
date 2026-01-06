@@ -2,11 +2,30 @@
  * Type definitions for the AI Student OS application
  */
 
+export type GradingGroup = {
+  id: string;
+  name: string; // e.g., "Assignments", "Labs", "Midterm", "Final"
+  totalWeightPercent: number; // Total weight for this group
+  itemCount: number; // Number of items in this group (e.g., 5 assignments)
+};
+
+export type ScheduleBlock = {
+  id: string;
+  dayOfWeek: number; // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+  startTime: string; // "HH:MM" format
+  endTime: string; // "HH:MM" format
+  type: "class" | "lab" | "office-hours" | "study-block";
+  name?: string; // Optional name for the block
+};
+
 export type Course = {
   id: string;
   name: string;
   code: string;
   color: string;
+  gradingGroups?: GradingGroup[]; // Optional: category-based grading
+  scheduleBlocks?: ScheduleBlock[]; // Optional: class schedule
+  targetGrade?: number; // Optional: target final grade (default 85%)
 };
 
 export type DeliverableStatus = 'incomplete' | 'in_progress' | 'submitted' | 'graded';
