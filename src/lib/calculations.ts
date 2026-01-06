@@ -276,3 +276,173 @@ export function getGradeProjection(deliverables: Deliverable[]) {
 
   return data
 }
+
+/**
+ * Get next deadline
+ */
+export function getNextDeadline(deliverables: Deliverable[]): Deliverable | null {
+  const active = deliverables.filter((d) => d.status !== "graded")
+  
+  if (active.length === 0) return null
+  
+  // Sort by due date ascending
+  const sorted = [...active].sort((a, b) => 
+    new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime()
+  )
+  
+  return sorted[0]
+}
+
+/**
+ * Get overdue and at-risk counts
+ */
+export function getOverdueAndAtRisk(
+  deliverables: Deliverable[],
+  weeklyBudget: number
+): { overdueCount: number; atRiskCount: number } {
+  const now = startOfDay(new Date())
+  const active = deliverables.filter((d) => d.status !== "graded")
+  
+  const overdueCount = active.filter((d) => new Date(d.dueDate) < now).length
+  
+  // At-risk: due within 7 days AND remaining hours > available capacity
+  const next7Days = addDays(now, 7)
+  const atRisk = active.filter((d) => {
+    const dueDate = new Date(d.dueDate)
+    if (dueDate > next7Days || dueDate < now) return false
+    
+    const daysRemaining = Math.max(1, Math.ceil((dueDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)))
+    const remainingHours = d.status === "submitted" ? 0 : d.estimatedHours
+    const availableCapacity = (weeklyBudget / 7) * daysRemaining
+    
+    return remainingHours > availableCapacity
+  })
+  
+  return { overdueCount, atRiskCount: atRisk.length }
+}
+
+/**
+ * Get hours due in next 7 days with utilization
+ */
+export function getHoursDue7Days(
+  deliverables: Deliverable[],
+  weeklyBudget: number
+): { hours: number; utilization: number } {
+  const now = startOfDay(new Date())
+  const next7Days = addDays(now, 7)
+  const active = deliverables.filter((d) => d.status !== "graded")
+  
+  const upcoming = active.filter((d) => {
+    const dueDate = new Date(d.dueDate)
+    return dueDate >= now && dueDate <= next7Days
+  })
+  
+  const hours = upcoming.reduce((sum, d) => {
+    if (d.status === "submitted" || d.status === "graded") return sum
+    return sum + d.estimatedHours
+  }, 0)
+  
+  const utilization = (hours / weeklyBudget) * 100
+  
+  return { hours, utilization }
+}
+
+/**
+ * Get grade tracking info (current, projected, target)
+ */
+export function getGradeTracking(
+  deliverables: Deliverable[],
+  targetGrade: number = 85
+): {
+  currentAvg: number
+  projectedFinal: number
+  status: "on-track" | "slightly-behind" | "at-risk"
+  weightCovered: number
+  hint: string
+} {
+  const { average: currentAvg, totalWeight: weightCovered } = calculateWeightedAverage(deliverables)
+  
+  // Calculate projected final (use targets for ungraded items)
+  const gradedTotal = deliverables
+    .filter((d) => d.actualGrade !== undefined || d.currentGrade !== undefined)
+    .reduce((sum, d) => sum + (d.actualGrade || d.currentGrade || 0) * d.gradeWeight, 0)
+  
+  const ungradedTotal = deliverables
+    .filter((d) => d.actualGrade === undefined && d.currentGrade === undefined)
+    .reduce((sum, d) => sum + (d.targetGrade || 85) * d.gradeWeight, 0)
+  
+  const totalWeight = deliverables.reduce((sum, d) => sum + d.gradeWeight, 0)
+  const projectedFinal = totalWeight > 0 ? (gradedTotal + ungradedTotal) / totalWeight : 0
+  
+  // Determine status
+  let status: "on-track" | "slightly-behind" | "at-risk"
+  if (projectedFinal >= targetGrade) {
+    status = "on-track"
+  } else if (projectedFinal >= targetGrade - 5) {
+    status = "slightly-behind"
+  } else {
+    status = "at-risk"
+  }
+  
+  // Generate hint: what grade needed on next high-weight ungraded item
+  const ungraded = deliverables
+    .filter((d) => d.actualGrade === undefined && d.currentGrade === undefined)
+    .sort((a, b) => b.gradeWeight - a.gradeWeight)
+  
+  let hint = ""
+  if (ungraded.length > 0 && weightCovered > 0) {
+    const nextItem = ungraded[0]
+    const remainingWeight = 100 - weightCovered
+    const neededTotal = targetGrade * 100 - (currentAvg * weightCovered)
+    const neededOnNext = neededTotal / nextItem.gradeWeight
+    
+    if (remainingWeight > 0 && neededOnNext > 0 && neededOnNext <= 100) {
+      hint = `Need ~${Math.round(neededOnNext)}% on next ${nextItem.gradeWeight}% to stay on track`
+    } else if (neededOnNext > 100) {
+      hint = `Target may be difficult to reach - focus on maximizing grades`
+    } else {
+      hint = `On pace to meet ${targetGrade}% target`
+    }
+  } else if (weightCovered === 0) {
+    hint = "No grades recorded yet"
+  } else {
+    hint = "All deliverables graded"
+  }
+  
+  return {
+    currentAvg,
+    projectedFinal,
+    status,
+    weightCovered,
+    hint,
+  }
+}
+
+/**
+ * Get today's focus items (top priority actions)
+ */
+export function getTodaysFocus(deliverables: Deliverable[]): Deliverable[] {
+  const active = deliverables.filter((d) => d.status !== "graded")
+  const now = startOfDay(new Date())
+  
+  // Prioritize: overdue first, then due soon with high hours, then highest weight
+  const scored = active.map((d) => {
+    const dueDate = new Date(d.dueDate)
+    const daysUntilDue = Math.ceil((dueDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+    const isOverdue = daysUntilDue < 0
+    const dueSoon = daysUntilDue >= 0 && daysUntilDue <= 3
+    const remainingHours = d.status === "submitted" ? 0 : d.estimatedHours
+    
+    let score = 0
+    if (isOverdue) score += 1000 + Math.abs(daysUntilDue) * 10 // Most urgent
+    else if (dueSoon) score += 500 - daysUntilDue * 100 // Due soon
+    score += remainingHours * 2 // High hours adds urgency
+    score += d.gradeWeight // Weight adds importance
+    
+    return { deliverable: d, score }
+  })
+  
+  // Sort by score descending and take top 3
+  const sorted = scored.sort((a, b) => b.score - a.score)
+  return sorted.slice(0, 3).map((item) => item.deliverable)
+}
