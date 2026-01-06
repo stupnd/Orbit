@@ -4,6 +4,7 @@ import { Layout } from "./components/Layout"
 import { Dashboard } from "./pages/Dashboard"
 import { Planner } from "./pages/Planner"
 import { Simulator } from "./pages/Simulator"
+import { Calendar } from "./pages/Calendar"
 
 function App() {
   return (
@@ -13,6 +14,7 @@ function App() {
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/planner" element={<Planner />} />
+            <Route path="/calendar" element={<Calendar />} />
             <Route path="/simulator" element={<Simulator />} />
           </Routes>
         </Layout>

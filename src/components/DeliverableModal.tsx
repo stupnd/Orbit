@@ -1,7 +1,13 @@
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "./ui/card"
 import { Button } from "./ui/button"
-import { Select } from "./ui/select"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "./ui/select"
 import { X } from "lucide-react"
 import { useAppState } from "@/lib/store"
 import { motion, AnimatePresence } from "framer-motion"
@@ -146,20 +152,23 @@ export function DeliverableModal({ isOpen, onClose, deliverable }: DeliverableMo
 
                 <div>
                   <label className="text-sm font-medium mb-2 block">Course</label>
-                  <Select
-                    value={courseId}
-                    onChange={(e) => setCourseId(e.target.value)}
-                    required
-                  >
-                    {courses.length === 0 ? (
-                      <option value="">No courses available</option>
-                    ) : (
-                      courses.map((course) => (
-                        <option key={course.id} value={course.id}>
-                          {course.code} - {course.name}
-                        </option>
-                      ))
-                    )}
+                  <Select value={courseId} onValueChange={setCourseId} required>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a course" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {courses.length === 0 ? (
+                        <SelectItem value="" disabled>
+                          No courses available
+                        </SelectItem>
+                      ) : (
+                        courses.map((course) => (
+                          <SelectItem key={course.id} value={course.id}>
+                            {course.code} - {course.name}
+                          </SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
                   </Select>
                 </div>
 
@@ -183,12 +192,17 @@ export function DeliverableModal({ isOpen, onClose, deliverable }: DeliverableMo
                     </label>
                     <Select
                       value={status}
-                      onChange={(e) => setStatus(e.target.value as DeliverableStatus)}
+                      onValueChange={(value) => setStatus(value as DeliverableStatus)}
                     >
-                      <option value="incomplete">Incomplete</option>
-                      <option value="in_progress">In Progress</option>
-                      <option value="submitted">Submitted</option>
-                      <option value="graded">Grade Received</option>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="incomplete">Incomplete</SelectItem>
+                        <SelectItem value="in_progress">In Progress</SelectItem>
+                        <SelectItem value="submitted">Submitted</SelectItem>
+                        <SelectItem value="graded">Grade Received</SelectItem>
+                      </SelectContent>
                     </Select>
                   </div>
                 </div>
@@ -200,11 +214,16 @@ export function DeliverableModal({ isOpen, onClose, deliverable }: DeliverableMo
                     </label>
                     <Select
                       value={priority}
-                      onChange={(e) => setPriority(e.target.value as "low" | "medium" | "high")}
+                      onValueChange={(value) => setPriority(value as "low" | "medium" | "high")}
                     >
-                      <option value="low">Low</option>
-                      <option value="medium">Medium</option>
-                      <option value="high">High</option>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="low">Low</SelectItem>
+                        <SelectItem value="medium">Medium</SelectItem>
+                        <SelectItem value="high">High</SelectItem>
+                      </SelectContent>
                     </Select>
                   </div>
 

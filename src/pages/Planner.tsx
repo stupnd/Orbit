@@ -1,7 +1,13 @@
 import { useState } from "react"
 import { DeliverableListItem } from "@/components/DeliverableListItem"
 import { EmptyState } from "@/components/EmptyState"
-import { Select } from "@/components/ui/select"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
 import { DeliverableModal } from "@/components/DeliverableModal"
 import { useAppState } from "@/lib/store"
@@ -85,29 +91,34 @@ export function Planner() {
           <span className="text-sm font-medium">Filters:</span>
         </div>
 
-                    <Select
+        <Select
           value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value as DeliverableStatus | "all")}
-          className="w-[150px]"
+          onValueChange={(value) => setStatusFilter(value as DeliverableStatus | "all")}
         >
-          <option value="all">All Status</option>
-          <option value="incomplete">Incomplete</option>
-          <option value="in_progress">In Progress</option>
-          <option value="submitted">Submitted</option>
-          <option value="graded">Grade Received</option>
+          <SelectTrigger className="w-[150px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Status</SelectItem>
+            <SelectItem value="incomplete">Incomplete</SelectItem>
+            <SelectItem value="in_progress">In Progress</SelectItem>
+            <SelectItem value="submitted">Submitted</SelectItem>
+            <SelectItem value="graded">Grade Received</SelectItem>
+          </SelectContent>
         </Select>
 
-        <Select
-          value={courseFilter}
-          onChange={(e) => setCourseFilter(e.target.value)}
-          className="w-[180px]"
-        >
-          <option value="all">All Courses</option>
-          {courses.map((course) => (
-            <option key={course.id} value={course.id}>
-              {course.code} - {course.name}
-            </option>
-          ))}
+        <Select value={courseFilter} onValueChange={setCourseFilter}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Courses</SelectItem>
+            {courses.map((course) => (
+              <SelectItem key={course.id} value={course.id}>
+                {course.code} - {course.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
         </Select>
 
         <div className="flex items-center gap-2 ml-auto">

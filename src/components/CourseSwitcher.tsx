@@ -1,5 +1,11 @@
-import { Select } from "./ui/select"
-import { ChevronDown } from "lucide-react"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "./ui/select"
+import { Circle } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { Course } from "@/lib/types"
 
@@ -20,16 +26,25 @@ export function CourseSwitcher({
     <div className={cn("relative", className)}>
       <Select
         value={selectedCourseId || courses[0]?.id}
-        onChange={(e) => onCourseChange?.(e.target.value)}
-        className="w-[200px] appearance-none pr-8"
+        onValueChange={onCourseChange}
       >
-        {courses.map((course) => (
-          <option key={course.id} value={course.id}>
-            {course.code} - {course.name}
-          </option>
-        ))}
+        <SelectTrigger className="w-[200px]">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {courses.map((course) => (
+            <SelectItem key={course.id} value={course.id}>
+              <div className="flex items-center gap-2">
+                <Circle
+                  className="h-2 w-2 fill-current"
+                  style={{ color: course.color }}
+                />
+                <span>{course.code} - {course.name}</span>
+              </div>
+            </SelectItem>
+          ))}
+        </SelectContent>
       </Select>
-      <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
     </div>
   )
 }

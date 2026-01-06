@@ -7,7 +7,8 @@ import {
   Menu,
   X,
   Plus,
-  Settings
+  Settings,
+  CalendarDays
 } from "lucide-react"
 import { Button } from "./ui/button"
 import { AddCourseModal } from "./AddCourseModal"
@@ -24,6 +25,7 @@ interface LayoutProps {
 const navigation = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
   { name: "Planner", href: "/planner", icon: Calendar },
+  { name: "Calendar", href: "/calendar", icon: CalendarDays },
   { name: "What-if Simulator", href: "/simulator", icon: Calculator },
 ]
 

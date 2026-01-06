@@ -1,6 +1,12 @@
 import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Select } from "@/components/ui/select"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { Slider } from "@/components/ui/slider"
 import { Button } from "@/components/ui/button"
 import { EmptyState } from "@/components/EmptyState"
@@ -133,13 +139,18 @@ export function Simulator() {
               <label className="text-sm font-medium mb-2 block">Select Deliverable</label>
               <Select
                 value={selectedDeliverableId}
-                onChange={(e) => setSelectedDeliverableId(e.target.value)}
+                onValueChange={(value) => setSelectedDeliverableId(value)}
               >
-                {deliverables.map((deliverable) => (
-                  <option key={deliverable.id} value={deliverable.id}>
-                    {deliverable.title} - {deliverable.courseName}
-                  </option>
-                ))}
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a deliverable" />
+                </SelectTrigger>
+                <SelectContent>
+                  {deliverables.map((deliverable) => (
+                    <SelectItem key={deliverable.id} value={deliverable.id}>
+                      {deliverable.title} - {deliverable.courseName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
               </Select>
               {selectedDeliverable && (
                 <div className="mt-2 p-3 bg-muted/50 rounded-md text-sm space-y-1">
