@@ -2,7 +2,6 @@ import { useState, useMemo } from "react"
 import { Calendar as BigCalendar, dateFnsLocalizer } from "react-big-calendar"
 import { format, parse, startOfWeek, getDay, startOfDay, isSameDay } from "date-fns"
 import { enUS } from "date-fns/locale"
-import "react-big-calendar/lib/css/react-big-calendar.css"
 import { useAppState } from "@/lib/store"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -65,16 +64,25 @@ export function Calendar() {
 
   // Convert deliverables to calendar events
   const events: CalendarEvent[] = useMemo(() => {
-    return filteredDeliverables.map((deliverable) => {
+    const calendarEvents = filteredDeliverables.map((deliverable) => {
       const dueDate = new Date(deliverable.dueDate)
+      // Ensure end date is set properly (at least 1 hour after start for proper rendering)
+      const endDate = new Date(dueDate)
+      endDate.setHours(dueDate.getHours() + 1)
+      
       return {
         id: deliverable.id,
         title: deliverable.title,
         start: dueDate,
-        end: dueDate,
+        end: endDate,
         resource: deliverable,
       }
     })
+    
+    // Debug: log events to console
+    console.log('Calendar events:', calendarEvents)
+    
+    return calendarEvents
   }, [filteredDeliverables])
 
   // Group deliverables by date for agenda view
@@ -216,7 +224,7 @@ export function Calendar() {
       {/* Calendar Views */}
       <Card className="p-4 md:p-6 calendar-container">
         {view === "month" ? (
-          <div className="min-h-[600px]">
+          <div className="h-[500px] md:h-[650px] lg:h-[700px]" style={{ minHeight: '500px' }}>
             <BigCalendar
               localizer={localizer}
               events={events}
@@ -230,6 +238,7 @@ export function Calendar() {
               eventPropGetter={eventStyleGetter}
               dayPropGetter={dayPropGetter}
               toolbar={true}
+              style={{ height: '100%' }}
               components={{
                 event: ({ event }: { event: CalendarEvent }) => {
                   const status = event.resource.status as keyof typeof statusConfig
